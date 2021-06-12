@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<title>Blog-Post</title>
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400&display=swap" rel="stylesheet">
+<link rel='stylesheet' href='/blog-post/css/jquery-ui.css'>
+<link rel='stylesheet' href='/blog-post/css/jquery-ui.theme.css'>
+<link rel='stylesheet' href='/blog-post/css/jquery-ui.structure.css'>
+
+<script src='/blog-post/jquery/jquery.js'></script>
+<script src='/blog-post/jquery/jquery-ui.js'></script>
+<script src='/blog-post/jquery/jquery.validate.js'></script>
+<script src='/blog-post/jquery/additional-methods.js'></script>
+
+<style>
+.navigationMenu
+{
+position : fixed;
+top : 0;
+left : 0;
+right : 0;
+padding : 20px;
+padding-bottom : 35px;
+background : white;
+}
+.applicationName
+{
+text-decoration : none;
+font-size : 30pt;
+font-weight : bold;
+font-family : Roboto Slab, serif;
+color : black;
+margin-left : 10px;
+}
+.actionButtons
+{
+float : right;
+}
+.actionButton
+{
+font-size : 15pt;
+margin : 10px 10px 0px 10px;
+}
+#aboutUser
+{
+font-family : Open Sans, sans-serif;
+font-size : 20px;
+}
+td
+{
+padding : 10px 10px 2px 10px;
+}
+.error
+{
+color : red;
+}
+#blogs
+{
+margin-top : 110px;
+font-size : 20px;
+font-family : Open Sans, sans-serif;
+}
+</style>
+
+<script>
+function clearAddBlogDialog()
+{
+$("#blogTitleErrorSection").html("");
+$("#blogDescriptionErrorSection").html("");
+$("#blogTitle").val("");
+$("#blogDescription").val("");
+}
+
+var blogPostUsername=null;
+
+$(()=>{
+
+$("button").button();
+$("#addBlogButton").tooltip();
+$("#addBlogDialog").hide();
+
+$.ajax({
+url : "http://localhost:8080/blog-post/getUser",
+method : "GET",
+dataType : "json",
+async : true,
+cache : false
+}).done(function(responseData){
+blogPostUsername=responseData.username;
+
+$("#aboutUser").text("Hey, "+blogPostUsername+" !!!");
+let availableWidth=$("body").width()-$("a.applicationName").width()-$("div.actionButtons").width();
+let aboutUserWidth=$("#aboutUser").width();
+let padding=(availableWidth-100-aboutUserWidth)/2;
+$("#aboutUser").css("padding-left",padding);
+$("#aboutUser").css("padding-right",padding);
+$("#aboutUser").css("margin-left",50-20);
+
+$.ajax({
+url : "http://localhost:8080/blog-post/getBlogs",
+method : "GET",
+dataType : "json",
+async : true
+}).done(function(responseData){
+var blogs=responseData;
+var title;
+var description;
+var username;
+for(var i=0;i<blogs.length;i++)
+{
+title=blogs[i].title;
+description=blogs[i].description;
+username=blogs[i].username;
+$("#blogs").append("<h3>"+title+" ~ By "+username+"</h3><div><p>"+description+"</p></div>");
+}
+$("#blogs").accordion("refresh");
+$("#blogs").accordion("option","active",0);
+
+}).fail(function(error){
+$("#errorHtml").submit();
+});
+
+}).fail(function(error){
+$("#indexHtml").submit();
+});
+
+$("#addBlogForm").validate({
+rules :{
+blogTitle : {
+required : true,
+minlength : 8,
+maxlength : 90
+},
+blogDescription : {
+required : true,
+minlength : 200,
+maxlength : 65000
+}
+},
+messages : {
+blogTitle : {
+required : "Title required.",
+maxlength : "Please enter at most 90 characters."
+},
+blogDescription : {
+required : "Description required.",
+maxlength : "Please enter at most 65000 characters."
+}
+},
+errorPlacement : function(error,element){
+if(element.attr("name")=="blogTitle")
+{
+$("#blogTitleErrorSection").append(error);
+}
+if(element.attr("name")=="blogDescription")
+{
+$("#blogDescriptionErrorSection").append(error);
+}
+}
+});
+
+$("#logoutButton").click(function(ev){
+$.ajax({
+url : "http://localhost:8080/blog-post/logout",
+method : "POST",
+dataType : "html",
+async : true,
+cache : false
+}).done(function(responseData){
+$("#indexHtml").submit();
+}).fail(function(error){
+$("#errorHtml").submit();
+});
+});
+
+$("#addBlogButton").click(function(ev){
+$("#addBlogDialog").dialog({
+buttons : [
+{
+text : "Submit",
+click : function(){
+$("#blogTitle").val($("#blogTitle").val().trim());
+$("#blogDescription").val($("#blogDescription").val().trim());
+var valid=$("#addBlogForm").valid();
+if(valid)
+{
+var username=blogPostUsername;
+var title=$("#blogTitle").val();
+var description=$("#blogDescription").val();
+$.ajax({
+url : "http://localhost:8080/blog-post/addBlog",
+method : "POST",
+data : {username : username, title : title, description : description},
+async : true
+}).done(function(responseData){
+
+$("#blogs").prepend("<h3>"+title+" ~ By "+username+"</h3><div><p>"+description+"</p></div>");
+$("#blogs").accordion("refresh");
+$("#blogs").accordion("option","active",0);
+$("#addBlogDialog").dialog("close");
+
+}).fail(function(error){
+clearAddBlogDialog();
+$("#errorHtml").submit();
+});
+}
+}
+},
+{
+text : "Cancel",
+click : function(){
+$(this).dialog("close");
+}
+}],
+draggable : false,
+hide : true,
+minHeight : 500,
+minWidth : 750,
+modal : true,
+resizable :false,
+show : true,
+title : 'Add Blog',
+close : function(event,ui){
+clearAddBlogDialog();
+}
+});
+});
+
+});
+</script>
+
+</head>
+<body>
+
+<div id="blogs">
+</div>
+<script>
+$("#blogs").accordion({
+heightStyle : "content"
+});
+</script>
+
+<div class='navigationMenu'>
+<a class='applicationName'>Blog-Post</a>
+<span id='aboutUser'></span>
+<div class='actionButtons'>
+<button type='button' id='addBlogButton' class='actionButton' title='Add Blog'>+</button>
+<button type='button' id='logoutButton' class='actionButton'>Logout</button>
+</div>
+</div>
+
+<div id='addBlogDialog'>
+<form id='addBlogForm'>
+<table>
+<tr>
+<td>Title</td>
+<td><input type='text' id='blogTitle' name='blogTitle' size=56></td>
+</tr>
+<tr>
+<td style='padding:0px 0px 0px 10px'></td>
+<td style='padding:0px 0px 0px 10px'><span class='error' id='blogTitleErrorSection'></span></td>
+</tr>
+</table>
+<br>
+<span style='padding:0px 0px 0px 10px'>Description : </span><span class='error' id='blogDescriptionErrorSection'></span><br>
+<textarea id='blogDescription' name='blogDescription' rows='12' cols='60' style='margin:5px 0px 0px 10px;resize:none'>
+</textarea>
+</form>
+</div>
+
+<form action='/blog-post/index.html' id='indexHtml'></form>
+<form action='/blog-post/error.html' id='errorHtml'></form>
+
+</body>
+</html>

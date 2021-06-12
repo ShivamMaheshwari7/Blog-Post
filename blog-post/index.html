@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<title>Blog-Post</title>
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+<link rel='stylesheet' href='/blog-post/css/jquery-ui.css'>
+<link rel='stylesheet' href='/blog-post/css/jquery-ui.theme.css'>
+<link rel='stylesheet' href='/blog-post/css/jquery-ui.structure.css'>
+
+<script src='/blog-post/jquery/jquery.js'></script>
+<script src='/blog-post/jquery/jquery-ui.js'></script>
+<script src='/blog-post/jquery/jquery.validate.js'></script>
+<script src='/blog-post/jquery/additional-methods.js'></script>
+
+<style>
+.navigationMenu
+{
+position : fixed;
+top : 0;
+left : 0;
+right : 0;
+padding : 20px;
+padding-bottom : 50px;
+background : white;
+}
+.applicationName
+{
+text-decoration : none;
+font-size : 30pt;
+font-weight : bold;
+font-family : Roboto Slab, serif;
+color : black;
+margin-left : 10px;
+}
+.actionButtons
+{
+float : right;
+}
+.actionButton
+{
+font-size : 15pt;
+margin : 10px 10px 0px 10px;
+}
+.welcomeDiv
+{
+margin-top : 250px;
+text-align : center;
+font-size : 60pt;
+font-family : Montserrat, sans-serif;
+}
+td
+{
+padding : 10px;
+}
+.error
+{
+color : red;
+}
+</style>
+
+<script>
+function clearLoginDialog()
+{
+$("#usernameErrorSection").html("");
+$("#passwordErrorSection").html("");
+$("#loginErrorSection").html("");
+$("#username").val("");
+$("#password").val("");
+}
+
+function clearSignUpDialog()
+{
+$("#signUpUsernameErrorSection").html("");
+$("#signUpPasswordErrorSection").html("");
+$("#signUpErrorSection").html("");
+$("#signUpUsername").val("");
+$("#signUpPassword").val("");
+}
+
+$(()=>{
+$("button").button();
+
+$("#loginForm").validate({
+rules :{
+username : {
+required : true,
+minlength : 8,
+maxlength : 20
+},
+password : {
+required : true,
+minlength : 8,
+maxlength : 20
+}
+},
+messages : {
+username : {
+required : "Username required.",
+maxlength : "Please enter at most 20 characters."
+},
+password : {
+required : "Password required.",
+maxlength : "Please enter at most 20 characters."
+}
+},
+errorPlacement : function(error,element){
+if(element.attr("name")=="username")
+{
+$("#usernameErrorSection").append(error);
+}
+if(element.attr("name")=="password")
+{
+$("#passwordErrorSection").append(error);
+}
+}
+});
+
+$("#signUpForm").validate({
+rules :{
+signUpUsername : {
+required : true,
+minlength : 8,
+maxlength : 20
+},
+signUpPassword : {
+required : true,
+minlength : 8,
+maxlength : 20
+}
+},
+messages : {
+signUpUsername : {
+required : "Username required.",
+maxlength : "Please enter at most 20 characters."
+},
+signUpPassword : {
+required : "Password required.",
+maxlength : "Please enter at most 20 characters."
+}
+},
+errorPlacement : function(error,element){
+if(element.attr("name")=="signUpUsername")
+{
+$("#signUpUsernameErrorSection").append(error);
+}
+if(element.attr("name")=="signUpPassword")
+{
+$("#signUpPasswordErrorSection").append(error);
+}
+}
+});
+
+$("#loginDialog").hide();
+$("#signUpDialog").hide();
+
+$("#loginButton").click(function(ev){
+$("#loginDialog").dialog({
+buttons : [
+{
+text : "Login",
+click : function(){
+$("#loginErrorSection").html("");
+$("#username").val($("#username").val().trim());
+$("#password").val($("#password").val().trim());
+var valid=$("#loginForm").valid();
+if(valid)
+{
+var username=$("#username").val();
+var password=$("#password").val();
+$.ajax({
+url : "http://localhost:8080/blog-post/login",
+method : "POST",
+dataType : "json",
+data : {username : username, password : password},
+async : true
+}).done(function(responseData){
+if(responseData.error=="INTERNAL_SERVER_ERROR")
+{
+clearLoginDialog();
+$("#errorHtml").submit();
+}
+else if(responseData.error=="USER_NOT_FOUND")
+{
+$("#loginErrorSection").html("Invalid username, user not found.");
+}
+else if(responseData.error=="PASSWORD_NOT_MATCH")
+{
+$("#loginErrorSection").html("Invalid username and password.");
+}
+else if(responseData.error=="")
+{
+clearLoginDialog();
+$("#blogsHtml").submit();
+}
+}).fail(function(error){
+clearLoginDialog();
+$("#errorHtml").submit();
+});
+}
+}
+},
+{
+text : "Cancel",
+click : function(){
+$(this).dialog("close");
+}
+}],
+draggable : false,
+hide : true,
+minHeight : 200,
+minWidth : 600,
+modal : true,
+resizable :false,
+show : true,
+title : 'Login Authentication',
+close : function(event,ui){
+clearLoginDialog();
+}
+});
+});
+
+$("#signUpButton").click(function(ev){
+$("#signUpDialog").dialog({
+buttons : [
+{
+text : "Sign Up",
+click : function(){
+$("#signUpErrorSection").html("");
+$("#signUpUsername").val($("#signUpUsername").val().trim());
+$("#signUpPassword").val($("#signUpPassword").val().trim());
+var valid=$("#signUpForm").valid();
+if(valid)
+{
+var username=$("#signUpUsername").val();
+var password=$("#signUpPassword").val();
+$.ajax({
+url : "http://localhost:8080/blog-post/signUp",
+method : "POST",
+dataType : "json",
+data : {username : username, password : password},
+async : true
+}).done(function(responseData){
+if(responseData.error=="INTERNAL_SERVER_ERROR")
+{
+clearSignUpDialog();
+$("#errorHtml").submit();
+}
+else if(responseData.error=="USERNAME_EXISTS")
+{
+$("#signUpErrorSection").html("User with username '"+username+"' exists.");
+}
+else if(responseData.error=="")
+{
+clearSignUpDialog();
+$("#blogsHtml").submit();
+}
+}).fail(function(error){
+clearSignUpDialog();
+$("#errorHtml").submit();
+});
+}
+}
+},
+{
+text : "Cancel",
+click : function(){
+$(this).dialog("close");
+}
+}],
+draggable : false,
+hide : true,
+minHeight : 200,
+minWidth : 600,
+modal : true,
+resizable :false,
+show : true,
+title : 'Sign Up Authentication',
+close : function(event,ui){
+clearSignUpDialog();
+}
+});
+});
+
+});
+</script>
+
+</head>
+<body>
+<div class='navigationMenu'>
+<a class='applicationName'>Blog-Post</a>
+<div class='actionButtons'>
+<button type='button' id='loginButton' class='actionButton'>Login</button>
+<button type='button' id='signUpButton' class='actionButton'>Sign Up</button>
+</div>
+</div>
+<div class='welcomeDiv'>
+Welcome to Blog-Post
+</div>
+
+<div id='loginDialog'>
+<form id='loginForm'>
+<br>
+<table>
+<tr>
+<td>Username</td>
+<td><input type='text' id='username' name='username'></td>
+<td><span id='usernameErrorSection'></span></td>
+</tr>
+<tr>
+<td>Password</td>
+<td><input type='text' id='password' name='password'></td>
+<td><span id='passwordErrorSection'></span></td>
+</tr>
+</table>
+<br>
+<center><span id='loginErrorSection' class='error'></span></center>
+</form>
+</div>
+
+<div id='signUpDialog'>
+<form id='signUpForm'>
+<br>
+<table>
+<tr>
+<td>Username</td>
+<td><input type='text' id='signUpUsername' name='signUpUsername'></td>
+<td><span id='signUpUsernameErrorSection'></span></td>
+</tr>
+<tr>
+<td>Password</td>
+<td><input type='text' id='signUpPassword' name='signUpPassword'></td>
+<td><span id='signUpPasswordErrorSection'></span></td>
+</tr>
+</table>
+<br>
+<center><span id='signUpErrorSection' class='error'></span></center>
+</form>
+</div>
+
+<form action='/blog-post/error.html' id='errorHtml'></form>
+<form action='/blog-post/blogs.html' id='blogsHtml'></form>
+
+</body>
+</html>
